@@ -68,12 +68,13 @@ $(TARGET)/didkit.jar: \
 install-rustup-android:
 	rustup target add i686-linux-android armv7-linux-androideabi aarch64-linux-android x86_64-linux-android
 
-ANDROID_SDK_ROOT ?= ~/Android/Sdk
+ANDROID_SDK_ROOT ?= $(wildcard ~/Android/Sdk ~/.android/Sdk ~/Library/Android/sdk)
 ANDROID_TOOLS ?= $(lastword $(wildcard $(ANDROID_SDK_ROOT)/build-tools/*))
 ANDROID_NDK_HOME ?= $(lastword $(wildcard \
 					$(ANDROID_SDK_ROOT)/ndk/* \
 					$(ANDROID_SDK_ROOT)/ndk-bundle))
 OS_NAME=$(shell uname | tr '[:upper:]' '[:lower:]')
+
 TOOLCHAIN=$(ANDROID_NDK_HOME)/toolchains/llvm/prebuilt/$(OS_NAME)-x86_64
 ANDROID_LIBS=\
 	$(TARGET)/i686-linux-android/release/libdidkit.so\
