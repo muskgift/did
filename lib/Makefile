@@ -21,17 +21,25 @@ $(TARGET)/didkit.h: cbindgen.toml cbindings/build.rs cbindings/Cargo.toml $(RUST
 	cargo build -p didkit_cbindings
 	test -s $@ && touch $@
 
-$(TARGET)/release/libdidkit.so: $(RUST_SRC)
+.PHONY: lib
+OS_NAME=$(shell uname | tr '[:upper:]' '[:lower:]')
+ifeq ($(OS_NAME),darwin)
+    LIB=$(TARGET)/release/libdidkit.dylib
+else
+    LIB=$(TARGET)/release/libdidkit.so
+endif
+lib: $(LIB)
+$(LIB): $(RUST_SRC)
 	cargo build --lib --release
-	strip $@
+	strip -x $@
 
 ## C
 
-$(TARGET)/test/c.stamp: $(TARGET)/cabi-test $(TARGET)/release/libdidkit.so | $(TARGET)/test
+$(TARGET)/test/c.stamp: $(TARGET)/cabi-test $(LIB) | $(TARGET)/test
 	LD_LIBRARY_PATH=$(TARGET)/release $(TARGET)/cabi-test
 	touch $@
 
-$(TARGET)/cabi-test: c/test.c $(TARGET)/release/libdidkit.so $(TARGET)/didkit.h
+$(TARGET)/cabi-test: c/test.c $(LIB) $(TARGET)/didkit.h
 	$(CC) -I$(TARGET) -L$(TARGET)/release $< -ldl -ldidkit -o $@
 
 ## Java
@@ -42,7 +50,7 @@ $(TARGET)/test/java.stamp: \
 	$(TARGET)/jvm/com/spruceid/DIDKit.class \
 	$(TARGET)/jvm/com/spruceid/DIDKitException.class \
 	$(TARGET)/jvm/com/spruceid/DIDKitTest.class \
-	$(TARGET)/release/libdidkit.so | $(TARGET)/test
+	$(LIB) | $(TARGET)/test
 	java -Djava.class.path=$(TARGET)/jvm \
 		-Djava.library.path=$(TARGET)/release \
 		com.spruceid.DIDKitTest
@@ -73,7 +81,6 @@ ANDROID_TOOLS ?= $(lastword $(wildcard $(ANDROID_SDK_ROOT)/build-tools/*))
 ANDROID_NDK_HOME ?= $(lastword $(wildcard \
 					$(ANDROID_SDK_ROOT)/ndk/* \
 					$(ANDROID_SDK_ROOT)/ndk-bundle))
-OS_NAME=$(shell uname | tr '[:upper:]' '[:lower:]')
 
 TOOLCHAIN=$(ANDROID_NDK_HOME)/toolchains/llvm/prebuilt/$(OS_NAME)-x86_64
 ANDROID_LIBS=\
@@ -100,7 +107,7 @@ $(TARGET)/%/release/libdidkit.so: $(RUST_SRC)
 
 ## Flutter
 
-$(TARGET)/test/flutter.stamp: flutter/lib/didkit.dart flutter/test/didkit_test.dart $(TARGET)/release/libdidkit.so | $(TARGET)/test
+$(TARGET)/test/flutter.stamp: flutter/lib/didkit.dart flutter/test/didkit_test.dart $(LIB) | $(TARGET)/test
 	cd flutter && LD_LIBRARY_PATH=$$PWD \
 		flutter --suppress-analytics test
 	touch $@

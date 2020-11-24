@@ -11,7 +11,7 @@ $ make -C ../ ../target/didkit.jar
 
 To build the shared library for your current platform/architecture:
 ```sh
-$ make -C ../ ../target/release/libdidkit.so
+$ make -C ../ lib
 ```
 
 ## Test
