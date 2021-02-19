@@ -8,5 +8,5 @@
     dst_repo_name: /spruceid.dev/  
     src_branch: xp-tweaks
     dst_branch: automator-testing
-    file_filter: *.md
+    file_filter: "*.md"
     commit_message: automated .md update from src repos 
