@@ -9,7 +9,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - name: CopycatAction
+    - name: Copy
       uses: andstor/copycat-action@v3.2.3
       with:
         personal_token: ${{ secrets.JUANS_DOCU_AUTOMATOR }}
