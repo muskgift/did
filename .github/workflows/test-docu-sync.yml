@@ -1,4 +1,4 @@
-- name: CopycatAction
+name: CopycatAction
   uses: andstor/copycat-action@v3.2.3
   with:
     personal_token: ${{ secrets.JUANS_DOCU_AUTOMATOR }}
