@@ -164,6 +164,8 @@ pub struct KeyArg {
         help = "WARNING: you should not use this through the CLI in a production environment, prefer its environment variable."
     )]
     jwk: Option<JWK>,
+    #[structopt(short, long)]
+    ssh_agent: bool,
 }
 
 impl KeyArg {
@@ -469,13 +471,29 @@ fn main() {
             holder,
             proof_options,
         } => {
-            let key: JWK = key.get_jwk();
+            let jwk: JWK = key.get_jwk();
             let mut presentation = VerifiablePresentation::default();
             presentation.holder = Some(ssi::vc::URI::String(holder));
             let options = LinkedDataProofOptions::from(proof_options);
-            let proof = rt
-                .block_on(presentation.generate_proof(&key, &options))
-                .unwrap();
+            use ssi::ldp::LinkedDataProofs;
+            let proof = if key.ssh_agent {
+                use tokio::net::UnixStream;
+                let ssh_agent_sock = if let Ok(sock_path) = std::env::var("SSH_AUTH_SOCK") {
+                    rt.block_on(UnixStream::connect(sock_path)).unwrap()
+                } else {
+                    panic!("SSH_AUTH_SOCK not set");
+                };
+                let prep = rt
+                    .block_on(LinkedDataProofs::prepare(&presentation, &options, &jwk))
+                    .unwrap();
+                let sig = rt
+                    .block_on(didkit_cli::ssh_agent::sign(&prep, ssh_agent_sock))
+                    .unwrap();
+                rt.block_on(prep.complete(&sig)).unwrap()
+            } else {
+                rt.block_on(presentation.generate_proof(&jwk, &options))
+                    .unwrap()
+            };
             presentation.add_proof(proof);
             let stdout_writer = BufWriter::new(stdout());
             serde_json::to_writer(stdout_writer, &presentation).unwrap();
