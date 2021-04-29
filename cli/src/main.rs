@@ -478,7 +478,7 @@ fn main() {
             use ssi::ldp::LinkedDataProofs;
             let proof = if key.ssh_agent {
                 use tokio::net::UnixStream;
-                let ssh_agent_sock = if let Ok(sock_path) = std::env::var("SSH_AUTH_SOCK") {
+                let mut ssh_agent_sock = if let Ok(sock_path) = std::env::var("SSH_AUTH_SOCK") {
                     rt.block_on(UnixStream::connect(sock_path)).unwrap()
                 } else {
                     panic!("SSH_AUTH_SOCK not set");
@@ -487,7 +487,7 @@ fn main() {
                     .block_on(LinkedDataProofs::prepare(&presentation, &options, &jwk))
                     .unwrap();
                 let sig = rt
-                    .block_on(didkit_cli::ssh_agent::sign(&prep, ssh_agent_sock))
+                    .block_on(didkit_cli::ssh_agent::sign(&prep, &mut ssh_agent_sock))
                     .unwrap();
                 rt.block_on(prep.complete(&sig)).unwrap()
             } else {
